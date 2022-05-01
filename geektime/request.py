@@ -1,5 +1,6 @@
 import json
 from random import randrange
+from time import sleep
 
 import requests
 
@@ -14,7 +15,7 @@ def post(url, data, gcess, gcid):
                           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36',
                       })
     if r.status_code == 451:
-        randrange(1, 5)
+        sleep(randrange(1, 5))
         print('451 retry')
         r = post(url, data, gcess, gcid)
     return r
