@@ -1,6 +1,6 @@
 import os
 import re
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, wait
 from random import randrange
 from time import sleep
 
@@ -29,7 +29,7 @@ def fix_content_heading(content):
 
 class GeekT:
     def __init__(self, courses, token=os.getenv('GEEKT_TOKEN'), gcid=os.getenv('GEEKT_GCID'), base_dir='.', epub=True,
-                 pdf=True, audio=False, worker=5, force=False):
+                 pdf=True, audio=False, worker=None, force=False):
         self.courses = courses
         self.token = token
         self.gcid = gcid
@@ -39,30 +39,37 @@ class GeekT:
         self.audio = audio
         self.worker = worker
         self.force = force
+        self.completed = 0
+
         # 初始化目录
         mkdir(base_dir)
 
     # 单线程爬取内容
     def run(self):
         print(f'start {len(self.courses)} courses!')
-        completed = 0
+        self.completed = 0
         for course in self.courses:
+            print(f'current id is {course}')
             self._handle_course(course)
-            completed += 1
-            print(f'total completed now: {completed} / {len(self.courses)}')
+            self.completed += 1
+            print(f'total completed now: {self.completed} / {len(self.courses)}')
         print('all complete')
+
+    def complete_notify(self):
+        self.completed += 1
+        print(f'total complete now: {self.completed} / {len(self.courses)}')
 
     def trans(self):
         print(f'start {len(self.courses)} courses!')
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=self.worker) as executor:
             futures = []
-            completed = 0
+            self.completed = 0
+
             for course in self.courses:
-                futures.append(executor.submit(self._trans_course, course))
-            for future in as_completed(futures):
-                completed += 1
-                print(f'total complete now: {completed} / {len(self.courses)}')
-                print(future.result())
+                future = executor.submit(self._trans_course, course)
+                future.add_done_callback(lambda _: (self.complete_notify()))
+                futures.append(future)
+            wait(futures)
         print('all complete')
 
     def _handle_course_meta(self, course_id):
@@ -71,6 +78,7 @@ class GeekT:
         author = meta['author']['name']
         title = meta['title']
         cid = meta['extra']['cid']
+        print(f'{title} start')
         course_dir = os.path.join(self.base_dir, title.replace("/", ""))
         mkdir(course_dir)
         write_bytes(os.path.join(course_dir, 'cover.png'), requests.get(cover).content)
@@ -96,6 +104,7 @@ css: ./style.css
         if self.pdf:
             to_pdf(course_dir, self.force)
         print(f'finish course {title} - id {course_id}')
+        return f'finish course {title} - id {course_id}'
 
     def _handle_course(self, course_id):
         meta = self._handle_course_meta(course_id)
@@ -115,6 +124,18 @@ css: ./style.css
     def _handle_chapters(self, course_cid, course_dir):
         chapters = get_chapters(course_cid, self.token, self.gcid)['data']
         res = dict()
+        if len(chapters) == 0:
+            chapter_dir = os.path.join(course_dir, f'{0}.正文')
+            mkdir(chapter_dir)
+            res['0'] = {
+                'chapter_name': '正文',
+                'id': '',
+                'idx': 0,
+                'chapter_dir': chapter_dir,
+                'articles': []
+            }
+            return res
+
         for idx, chapter in enumerate(chapters):
             chapter_name = chapter['title']
             chapter_dir = os.path.join(course_dir, f'{idx}.{chapter_name.replace("/", "")}')
@@ -128,6 +149,7 @@ css: ./style.css
                 'chapter_dir': chapter_dir,
                 'articles': []
             }
+
         return res
 
     def _handle_articles(self, cid, chapters):

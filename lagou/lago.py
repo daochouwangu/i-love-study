@@ -1,6 +1,5 @@
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from time import sleep
+from concurrent.futures import ThreadPoolExecutor, wait
 
 import markdownify
 import requests
@@ -10,7 +9,7 @@ from utils import mkdir, write_file, write_bytes, to_markdown, to_epub, to_pdf
 
 
 class Lago:
-    def __init__(self, courses, token=os.getenv('LAGO_TOKEN'), base_dir='.', epub=True, pdf=True, worker=5,
+    def __init__(self, courses, token=os.getenv('LAGO_TOKEN'), base_dir='.', epub=True, pdf=True, worker=None,
                  force=False):
         self.courses = courses
         self.token = token
@@ -19,31 +18,36 @@ class Lago:
         self.pdf = pdf
         self.worker = worker
         self.force = force
+        self.completed = 0
 
         # 初始化目录
         mkdir(base_dir)
 
     def run(self):
         print(f'start {len(self.courses)} courses!')
-        completed = 0
+        self.completed = 0
         for course in self.courses:
+            print(f'current id is {course}')
             self._handle_course(course)
-            completed += 1
-            print(f'total completed now: {completed} / {len(self.courses)}')
-            sleep(2)
+            self.completed += 1
+            print(f'total completed now: {self.completed} / {len(self.courses)}')
         print('all complete')
+
+    def complete_notify(self):
+        self.completed += 1
+        print(f'total complete now: {self.completed} / {len(self.courses)}')
 
     def trans(self):
         print(f'start {len(self.courses)} courses!')
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=self.worker) as executor:
             futures = []
-            completed = 0
+            self.completed = 0
+
             for course in self.courses:
-                futures.append(executor.submit(self._trans_course, course))
-            for future in as_completed(futures):
-                completed += 1
-                print(f'total complete now: {completed} / {len(self.courses)}')
-                print(future.result())
+                future = executor.submit(self._trans_course, course)
+                future.add_done_callback(lambda _: (self.complete_notify()))
+                futures.append(future)
+            wait(futures)
         print('all complete')
 
     def _trans_course(self, course_id):
@@ -57,7 +61,7 @@ class Lago:
             to_epub(course_dir, self.force)
         if self.pdf:
             to_pdf(course_dir, self.force)
-        return f'finish course {course_name} - id {course_id}'
+        print(f'finish course {course_name} - id {course_id}')
 
     def _handle_course(self, course_id):
         info = get_course_info(course_id, self.token)['content']
