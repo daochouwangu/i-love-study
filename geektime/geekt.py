@@ -1,6 +1,6 @@
 import os
 import re
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from random import randrange
 from time import sleep
 
@@ -45,15 +45,24 @@ class GeekT:
     # 单线程爬取内容
     def run(self):
         print(f'start {len(self.courses)} courses!')
+        completed = 0
         for course in self.courses:
             self._handle_course(course)
+            completed += 1
+            print(f'total completed now: {completed} / {len(self.courses)}')
         print('all complete')
 
     def trans(self):
         print(f'start {len(self.courses)} courses!')
-        pool = ThreadPoolExecutor(max_workers=self.worker)
-        _ = [pool.submit(self._trans_course, course) for course in self.courses]
-        pool.shutdown(wait=True)
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            completed = 0
+            for course in self.courses:
+                futures.append(executor.submit(self._trans_course, course))
+            for future in as_completed(futures):
+                completed += 1
+                print(f'total complete now: {completed} / {len(self.courses)}')
+                print(future.result())
         print('all complete')
 
     def _handle_course_meta(self, course_id):

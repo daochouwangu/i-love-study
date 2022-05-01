@@ -1,5 +1,5 @@
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import sleep
 
 import markdownify
@@ -25,16 +25,25 @@ class Lago:
 
     def run(self):
         print(f'start {len(self.courses)} courses!')
+        completed = 0
         for course in self.courses:
             self._handle_course(course)
+            completed += 1
+            print(f'total completed now: {completed} / {len(self.courses)}')
             sleep(2)
         print('all complete')
 
     def trans(self):
         print(f'start {len(self.courses)} courses!')
-        pool = ThreadPoolExecutor(max_workers=self.worker)
-        _ = [pool.submit(self._trans_course, course) for course in self.courses]
-        pool.shutdown(wait=True)
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            completed = 0
+            for course in self.courses:
+                futures.append(executor.submit(self._trans_course, course))
+            for future in as_completed(futures):
+                completed += 1
+                print(f'total complete now: {completed} / {len(self.courses)}')
+                print(future.result())
         print('all complete')
 
     def _trans_course(self, course_id):
@@ -48,7 +57,7 @@ class Lago:
             to_epub(course_dir, self.force)
         if self.pdf:
             to_pdf(course_dir, self.force)
-        print(f'finish course {course_name} - id {course_id}')
+        return f'finish course {course_name} - id {course_id}'
 
     def _handle_course(self, course_id):
         info = get_course_info(course_id, self.token)['content']
