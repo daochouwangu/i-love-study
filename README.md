@@ -7,10 +7,10 @@
 可以获取拉勾教育和极客时间的课程（需本身有权限），并制作为 pdf / epub。（层级目录为章节-文章-文章中的 headings）
 
 ## Preview
+
 <img width="1436" alt="image" src="https://user-images.githubusercontent.com/8280645/166144758-5e4995cd-6440-4cfe-bd26-736d6c32a70a.png">
 <img width="1136" alt="image" src="https://user-images.githubusercontent.com/8280645/166144793-18a3fedb-dac1-411e-b350-c1d19f9816c4.png">
 <img width="1136" alt="image" src="https://user-images.githubusercontent.com/8280645/166144805-7f4ccb62-187c-43f4-92f8-89d28653944c.png">
-
 
 ## Install
 
@@ -55,6 +55,7 @@ base_dir: 爬取数据存放的目录
 epub: 转换时是否转换为 epub
 pdf: 转换时是否转换为 pdf
 worker: 转换时的线程数
+force: 转换时默认会检测是否已存在 md / epub / pdf 并跳过，True 启用强制重新生成
 """
 lago = Lago(
     courses=[685],  # course_id list
@@ -62,7 +63,8 @@ lago = Lago(
     base_dir='./lagou_courses',
     epub=True,
     pdf=True,
-    worker=5
+    worker=5,
+    force=False
 )
 
 # 单线程爬取（为了避免被封慢慢爬）
@@ -90,6 +92,7 @@ epub: 转换时是否转换为 epub
 pdf: 转换时是否转换为 pdf
 audio: 是否爬取音频（默认关闭，属实有点大还慢）
 worker: 转换时的线程数
+force: 转换时默认会检测是否已存在 md / epub / pdf 并跳过，True 启用强制重新生成
 """
 geekT = GeekT(
     courses=[685],  # course_id list
@@ -99,7 +102,8 @@ geekT = GeekT(
     epub=True,
     pdf=True,
     audio=False,
-    worker=5
+    worker=5,
+    force=False
 )
 
 # 单线程爬取（为了避免被封慢慢爬，风控比较敏感，爬起来比隔壁拉勾更慢）
