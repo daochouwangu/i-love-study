@@ -51,7 +51,7 @@ def to_markdown(root_dir, force=False):
         print(f'{root_dir} start to create markdown')
     sections = os.listdir(root_dir)
     md = ''
-    print(sections)
+    print('sections:')
     for section in sort(sections):
         section_path = os.path.join(root_dir, section)
         if not os.path.isdir(section_path):

@@ -52,7 +52,8 @@ class GeekT:
     def trans(self):
         print(f'start {len(self.courses)} courses!')
         pool = ThreadPoolExecutor(max_workers=self.worker)
-        _ = [pool.submit(self._trans_course, course).result() for course in self.courses]
+        _ = [pool.submit(self._trans_course, course) for course in self.courses]
+        pool.shutdown(wait=True)
         print('all complete')
 
     def _handle_course_meta(self, course_id):
