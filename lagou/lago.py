@@ -50,7 +50,7 @@ class Lago:
         info = get_course_info(course_id, self.token)['content']
         course_name = info['courseName']
         print(f'{course_name} start')
-        course_dir = os.path.join(self.base_dir, course_name)
+        course_dir = os.path.join(self.base_dir, course_name.replace("/", ""))
         self._handle_course_meta(course_id, course_dir)
         to_markdown(course_dir, self.force)
         if self.epub:
@@ -63,7 +63,7 @@ class Lago:
         info = get_course_info(course_id, self.token)['content']
         course_name = info['courseName']
         print(f'{course_name} start')
-        course_dir = os.path.join(self.base_dir, course_name)
+        course_dir = os.path.join(self.base_dir, course_name.replace("/", ""))
         mkdir(course_dir)
         print(f'mkdir {course_dir}')
         course_sections = info['courseSectionList']

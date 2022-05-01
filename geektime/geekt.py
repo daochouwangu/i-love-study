@@ -71,7 +71,7 @@ class GeekT:
         author = meta['author']['name']
         title = meta['title']
         cid = meta['extra']['cid']
-        course_dir = os.path.join(self.base_dir, title)
+        course_dir = os.path.join(self.base_dir, title.replace("/", ""))
         mkdir(course_dir)
         write_bytes(os.path.join(course_dir, 'cover.png'), requests.get(cover).content)
         write_file(os.path.join(course_dir, 'meta.yaml'), f"""\
