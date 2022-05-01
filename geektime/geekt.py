@@ -29,7 +29,7 @@ def fix_content_heading(content):
 
 class GeekT:
     def __init__(self, courses, token=os.getenv('GEEKT_TOKEN'), gcid=os.getenv('GEEKT_GCID'), base_dir='.', epub=True,
-                 pdf=True, audio=False, worker=5):
+                 pdf=True, audio=False, worker=5, force=False):
         self.courses = courses
         self.token = token
         self.gcid = gcid
@@ -38,6 +38,7 @@ class GeekT:
         self.pdf = pdf
         self.audio = audio
         self.worker = worker
+        self.force = force
         # 初始化目录
         mkdir(base_dir)
 
@@ -79,11 +80,11 @@ css: ./style.css
         if meta['is_video']:
             print(f'id {course_id} - {title} is video lesson, skip')
             return
-        to_markdown(course_dir)
+        to_markdown(course_dir, self.force)
         if self.epub:
-            to_epub(course_dir)
+            to_epub(course_dir, self.force)
         if self.pdf:
-            to_pdf(course_dir)
+            to_pdf(course_dir, self.force)
         print(f'finish course {title} - id {course_id}')
 
     def _handle_course(self, course_id):

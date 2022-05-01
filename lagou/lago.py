@@ -10,14 +10,16 @@ from utils import mkdir, write_file, write_bytes, to_markdown, to_epub, to_pdf
 
 
 class Lago:
-    def __init__(self, courses, token=os.getenv('LAGO_TOKEN'), base_dir='.', epub=True, pdf=True, worker=5):
+    def __init__(self, courses, token=os.getenv('LAGO_TOKEN'), base_dir='.', epub=True, pdf=True, worker=5,
+                 force=False):
         self.courses = courses
         self.token = token
         self.base_dir = base_dir
         self.epub = epub
         self.pdf = pdf
         self.worker = worker
-        
+        self.force = force
+
         # 初始化目录
         mkdir(base_dir)
 
@@ -40,11 +42,11 @@ class Lago:
         print(f'{course_name} start')
         course_dir = os.path.join(self.base_dir, course_name)
         self._handle_course_meta(course_id, course_dir)
-        to_markdown(course_dir)
+        to_markdown(course_dir, self.force)
         if self.epub:
-            to_epub(course_dir)
+            to_epub(course_dir, self.force)
         if self.pdf:
-            to_pdf(course_dir)
+            to_pdf(course_dir, self.force)
         print(f'finish course {course_name} - id {course_id}')
 
     def _handle_course(self, course_id):
