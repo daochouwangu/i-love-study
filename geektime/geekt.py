@@ -1,6 +1,6 @@
 import os
 import re
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from random import randrange
 from time import sleep
 
@@ -29,7 +29,7 @@ def fix_content_heading(content):
 
 class GeekT:
     def __init__(self, courses, token=os.getenv('GEEKT_TOKEN'), gcid=os.getenv('GEEKT_GCID'), base_dir='.', epub=True,
-                 pdf=True, audio=False, worker=None, force=False):
+                 pdf=True, audio=False, worker=None, force=False, ignore_exist=True):
         self.courses = courses
         self.token = token
         self.gcid = gcid
@@ -40,6 +40,7 @@ class GeekT:
         self.worker = worker
         self.force = force
         self.completed = 0
+        self.ignore_exist = ignore_exist
 
         # 初始化目录
         mkdir(base_dir)
@@ -61,15 +62,13 @@ class GeekT:
 
     def trans(self):
         print(f'start {len(self.courses)} courses!')
-        with ThreadPoolExecutor(max_workers=self.worker) as executor:
-            futures = []
+        with ProcessPoolExecutor(max_workers=self.worker) as executor:
             self.completed = 0
 
-            for course in self.courses:
-                future = executor.submit(self._trans_course, course)
-                future.add_done_callback(lambda _: (self.complete_notify()))
-                futures.append(future)
-            wait(futures)
+            for future in as_completed([executor.submit(self._trans_course, course) for course in self.courses]):
+                print(future.result(), flush=True)
+                self.completed += 1
+                print(f'total complete now: {self.completed} / {len(self.courses)}', flush=True)
         print('all complete')
 
     def _handle_course_meta(self, course_id):
@@ -83,10 +82,10 @@ class GeekT:
         mkdir(course_dir)
         write_bytes(os.path.join(course_dir, 'cover.png'), requests.get(cover).content)
         write_file(os.path.join(course_dir, 'meta.yaml'), f"""\
-title: {title}
-author: {author}
-cover-image: {course_dir}/cover.png
-css: ./style.css
+title: '{title}'
+author: '{author}'
+cover-image: '{course_dir}/cover.png'
+css: './style.css'
 """)
         print(f'{title} course meta added')
         return {'title': title, 'course_dir': course_dir, 'cid': cid, 'is_video': meta['is_video']}
@@ -104,11 +103,13 @@ css: ./style.css
         if self.pdf:
             to_pdf(course_dir, self.force)
         print(f'finish course {title} - id {course_id}')
-        return f'finish course {title} - id {course_id}'
+        return title
 
     def _handle_course(self, course_id):
         meta = self._handle_course_meta(course_id)
         course_dir = meta['course_dir']
+        if self.ignore_exist and os.path.exists(course_dir):
+            return
         cid = meta['cid']
         title = meta['title']
         if meta['is_video']:

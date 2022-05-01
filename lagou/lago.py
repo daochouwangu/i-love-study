@@ -1,5 +1,5 @@
 import os
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import markdownify
 import requests
@@ -10,7 +10,7 @@ from utils import mkdir, write_file, write_bytes, to_markdown, to_epub, to_pdf
 
 class Lago:
     def __init__(self, courses, token=os.getenv('LAGO_TOKEN'), base_dir='.', epub=True, pdf=True, worker=None,
-                 force=False):
+                 force=False, ignore_exist=True):
         self.courses = courses
         self.token = token
         self.base_dir = base_dir
@@ -19,6 +19,7 @@ class Lago:
         self.worker = worker
         self.force = force
         self.completed = 0
+        self.ignore_exist = ignore_exist
 
         # 初始化目录
         mkdir(base_dir)
@@ -39,15 +40,13 @@ class Lago:
 
     def trans(self):
         print(f'start {len(self.courses)} courses!')
-        with ThreadPoolExecutor(max_workers=self.worker) as executor:
-            futures = []
+        with ProcessPoolExecutor(max_workers=self.worker) as executor:
             self.completed = 0
 
-            for course in self.courses:
-                future = executor.submit(self._trans_course, course)
-                future.add_done_callback(lambda _: (self.complete_notify()))
-                futures.append(future)
-            wait(futures)
+            for future in as_completed([executor.submit(self._trans_course, course) for course in self.courses]):
+                print(future.result(), flush=True)
+                self.completed += 1
+                print(f'total complete now: {self.completed} / {len(self.courses)}', flush=True)
         print('all complete')
 
     def _trans_course(self, course_id):
@@ -62,12 +61,15 @@ class Lago:
         if self.pdf:
             to_pdf(course_dir, self.force)
         print(f'finish course {course_name} - id {course_id}')
+        return course_name
 
     def _handle_course(self, course_id):
         info = get_course_info(course_id, self.token)['content']
         course_name = info['courseName']
         print(f'{course_name} start')
         course_dir = os.path.join(self.base_dir, course_name.replace("/", ""))
+        if self.ignore_exist and os.path.exists(course_dir):
+            return
         mkdir(course_dir)
         print(f'mkdir {course_dir}')
         course_sections = info['courseSectionList']
@@ -81,10 +83,10 @@ class Lago:
         response = requests.get(cover)
         write_bytes(os.path.join(course_dir, 'cover.png'), response.content)
         write_file(os.path.join(course_dir, 'meta.yaml'), f"""\
-title: {title}
-author: {author}
-cover-image: {course_dir}/cover.png
-css: ./style.css
+title: '{title}'
+author: '{author}'
+cover-image: '{course_dir}/cover.png'
+css: './style.css'
 """)
         print(f'{title} course meta added')
 
