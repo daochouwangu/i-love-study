@@ -77,8 +77,9 @@ class GeekT:
         author = meta['author']['name']
         title = meta['title']
         cid = meta['extra']['cid']
-        print(f'{title} start')
         course_dir = os.path.join(self.base_dir, title.replace("/", ""))
+        dir_existed = os.path.exists(course_dir)
+        print(f'{title} start')
         mkdir(course_dir)
         write_bytes(os.path.join(course_dir, 'cover.png'), requests.get(cover).content)
         write_file(os.path.join(course_dir, 'meta.yaml'), f"""\
@@ -88,7 +89,8 @@ cover-image: '{course_dir}/cover.png'
 css: './style.css'
 """)
         print(f'{title} course meta added')
-        return {'title': title, 'course_dir': course_dir, 'cid': cid, 'is_video': meta['is_video']}
+        return {'title': title, 'course_dir': course_dir, 'cid': cid, 'is_video': meta['is_video'],
+                'dir_existed': dir_existed}
 
     def _trans_course(self, course_id):
         meta = self._handle_course_meta(course_id)
@@ -108,7 +110,7 @@ css: './style.css'
     def _handle_course(self, course_id):
         meta = self._handle_course_meta(course_id)
         course_dir = meta['course_dir']
-        if self.ignore_exist and os.path.exists(course_dir):
+        if self.ignore_exist and meta['dir_existed']:
             return
         cid = meta['cid']
         title = meta['title']
