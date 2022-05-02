@@ -103,7 +103,7 @@ def to_pdf(root_dir, force=False):
     title, author, cover_image, css = get_meta(root_dir)
 
     doc = pandoc.write(pandoc.read(content, format='commonmark'), format='pdf',
-                       options=['--pdf-engine=wkhtmltopdf', f'--title={title}', f'--css={css}',
+                       options=['--pdf-engine=wkhtmltopdf', '--metadata', f'title={title}', f'--css={css}',
                                 '--metadata', f'author={author}'])
     print(f'{root_dir} to pdf finish')
     write_bytes(os.path.join(root_dir, f'{course_name}.pdf'), doc)
