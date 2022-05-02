@@ -52,6 +52,7 @@ clone 项目，修改项目后 `python main.py`
 course_id: 课程介绍 url 中的 courseId，本质上是 sku，在列表接口能拿到全部 course_id
 token: cookie 中的 edu_gate_login_token
 base_dir: 爬取数据存放的目录
+ignore_exist: 爬取时忽略目录存在的课程
 epub: 转换时是否转换为 epub
 pdf: 转换时是否转换为 pdf
 worker: 转换时的线程数
@@ -61,10 +62,11 @@ lago = Lago(
     courses=[685],  # course_id list
     token=token,  # 也可以设置环境变量 LAGO_TOKEN
     base_dir='./lagou_courses',
+    ignore_exist=True,
     epub=True,
     pdf=True,
     worker=5,
-    force=False
+    force=False,
 )
 
 # 单线程爬取（为了避免被封慢慢爬）
@@ -88,6 +90,7 @@ lago.trans()
 course_id: 课程介绍 url 中的 courseId，在某个接口能拿到全部 course_id
 token: cookie 中的 edu_gate_login_token
 base_dir: 爬取数据存放的目录
+ignore_exist: 爬取时忽略已存在目录的课程
 epub: 转换时是否转换为 epub
 pdf: 转换时是否转换为 pdf
 audio: 是否爬取音频（默认关闭，属实有点大还慢）
@@ -99,6 +102,7 @@ geekT = GeekT(
     token=token,  # 也可以设置环境变量 GEEKT_TOKEN
     gcid=gcid,  # GEEKT_GCID
     base_dir='./geek_courses',
+    ignore_exist=True,
     epub=True,
     pdf=True,
     audio=False,
