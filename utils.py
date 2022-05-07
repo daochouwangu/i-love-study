@@ -86,8 +86,8 @@ def to_epub(root_dir, force=False):
     title, author, cover_image, css = get_meta(root_dir)
 
     doc = pandoc.write(pandoc.read(content, format='commonmark'), format='epub',
-                       options=[f'--title={title}', f'--css={css}', f'--epub-cover-image={cover_image}',
-                                '--metadata', f'author={author}'])
+                       options=[f'--css={css}', f'--epub-cover-image={cover_image}',
+                                '--metadata', f'author={author}', '--metadata', f'title={title}'])
     print(f'{root_dir} to epub finish')
     write_bytes(os.path.join(root_dir, f'{course_name}.epub'), doc)
 
